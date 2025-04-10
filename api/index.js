@@ -36,18 +36,19 @@ app.post("/blogs", async (req, res) => {
         const database = client.db("BlogDB");
         const blogCollection = database.collection("blogs");
 
-        const { id, title, blog, thumbnail, category, tags, authorName } = req.body;
+        const { id, title, blog, thumbnail, category, tags, authorName, authorEmail } = req.body;
 
-        if (!id || !title || !blog || !category || !authorName) {
+        if (!id || !title || !blog || !category || !authorName || !authorEmail) {
             return res.status(400).json({ error: "Required fields are missing" });
         }
 
         const newBlog = {
-            id, title, blog,
+            id, title, blog, authorEmail,
             thumbnail: thumbnail || "",
             category, tags: tags || [],
             authorName, createdAt: new Date(),
             reactCount: 0,
+            reactedUsers: [],
         };
 
         const result = await blogCollection.insertOne(newBlog);
@@ -271,6 +272,33 @@ app.get("/blogs/:id", async (req, res) => {
     }
 });
 
+app.post("/blogs/my-blogs", async (req, res) => {
+    try {
+        await connectDB();
+        const database = client.db("BlogDB");
+        const blogCollection = database.collection("blogs");
+
+        const { email } = req.body;
+
+        // Validate input
+        if (!email || typeof email !== "string" || email.trim().length === 0) {
+            return res.status(400).json({ error: "Valid email is required" });
+        }
+
+        // Fetch all blogs by this email
+        const userBlogs = await blogCollection.find({ authorEmail: email }).toArray();
+
+        if (!userBlogs || userBlogs.length === 0) {
+            return res.status(404).json({ error: "No blogs found for this email" });
+        }
+
+        res.json(userBlogs);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to fetch blog details" });
+    }
+});
+
 // ✅ Restore: Delete blog by ID
 app.delete("/blogs/:id", async (req, res) => {
     try {
@@ -285,7 +313,7 @@ app.delete("/blogs/:id", async (req, res) => {
             return res.status(404).json({ error: "Blog not found" });
         }
 
-        res.json({ message: "Blog deleted successfully" });
+        res.json({ success: true, message: "Blog deleted successfully" });
     } catch (error) {
         res.status(500).json({ error: "Failed to delete blog" });
     }
@@ -299,7 +327,7 @@ app.put("/blogs/:id", async (req, res) => {
         const blogCollection = database.collection("blogs");
 
         const { id } = req.params;
-        const { title, blog, thumbnail, category, tags, authorName } = req.body;
+        const { title, blog, thumbnail, category, tags, authorName, authorEmail } = req.body;
 
         const updateFields = {};
         if (title) updateFields.title = title;
@@ -308,6 +336,7 @@ app.put("/blogs/:id", async (req, res) => {
         if (category) updateFields.category = category;
         if (tags) updateFields.tags = tags;
         if (authorName) updateFields.authorName = authorName;
+        if (authorEmail) updateFields.authorEmail = authorEmail;
 
         const result = await blogCollection.updateOne(
             { _id: new ObjectId(id) },
@@ -359,6 +388,100 @@ app.post("/blogs/search", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch blogs", details: error.message });
     }
 });
+
+
+
+app.patch("/blogs/react/:id", async (req, res) => {
+    try {
+        await connectDB();
+        const database = client.db("BlogDB");
+        const blogCollection = database.collection("blogs");
+
+        const blogId = req.params.id;
+        const { email } = req.body;
+
+        console.log(blogId);
+
+        if (!email) {
+            return res.status(400).json({ error: "User email is required" });
+        }
+
+        const blog = await blogCollection.findOne({ _id: new ObjectId(blogId) });
+
+        if (!blog) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+        console.log(blog);
+
+        let update;
+        let message;
+
+        if (blog.reactedUsers?.includes(email)) {
+            // User already reacted, remove their reaction
+            update = {
+                $pull: { reactedUsers: email },
+                $inc: { reactCount: -1 }
+            };
+            message = "Reaction removed";
+        } else {
+            // User reacting for the first time
+            update = {
+                $addToSet: { reactedUsers: email },
+                $inc: { reactCount: 1 }
+            };
+            message = "Reaction added";
+        }
+
+        await blogCollection.updateOne({ _id: new ObjectId(blogId) }, update);
+
+        res.status(200).json({ message });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to toggle reaction", details: error.message });
+    }
+});
+
+
+app.post("/blog/react-status", async (req, res) => {
+    try {
+        await connectDB();
+        const database = client.db("BlogDB");
+        const blogCollection = database.collection("blogs");
+
+        const { id, email } = req.body;
+
+        if (!id) {
+            return res.status(400).json({ error: "Blog ID is required" });
+        }
+
+        // Handle case where email may not exist
+        if (!email) {
+            return res.status(200).json({ userReact: false, reactCount: 0 });
+        }
+
+        const blog = await blogCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!blog) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+
+        const reactedUsers = blog.reactedUsers || [];
+
+        const hasReacted = reactedUsers.includes(email);
+
+        return res.status(200).json({
+            userReact: hasReacted,
+            reactCount: reactedUsers.length,
+        });
+
+    } catch (error) {
+        console.error("Error in /blog/react-status:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+
+
+
 
 // ✅ Export for Vercel (works on both local & production)
 module.exports = app;
