@@ -72,7 +72,7 @@ app.get("/blogs/ids", async (req, res) => {
         // Fetch only the _id field (MongoDB's native ID)
         const blogIdsCursor = blogCollection.find({}, { projection: { _id: 1 } });
         const blogIds = await blogIdsCursor.toArray();
-        
+
         // Returns: [{ _id: ObjectId("...") }, { _id: ObjectId("...") }]
         res.status(200).json(blogIds);
     } catch (error) {
@@ -167,6 +167,48 @@ app.get("/blogs/featured", async (req, res) => {
 });
 
 
+
+app.get("/blogs/category-count", async (req, res) => {
+    console.log("hit");
+    try {
+        await connectDB();
+        const database = client.db("BlogDB");
+        const blogCollection = database.collection("blogs");
+
+
+
+        const categoryCounts = await blogCollection.aggregate([
+            {
+                $group: {
+                    _id: "$category",
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    category: "$_id",
+                    count: 1
+                }
+            }
+        ]).toArray();
+
+        res.status(200).json({
+            message: "Blog count by category fetched successfully",
+            data: categoryCounts
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Failed to count blogs by category",
+            details: error.message
+        });
+    }
+});
+
+
+
+
+
 // ✅ Restore: Get popular blogs
 app.get("/blogs/popular", async (req, res) => {
     try {
@@ -200,6 +242,8 @@ app.get("/blogs/popular", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch popular blogs", details: error.message });
     }
 });
+
+
 
 
 // ✅ Restore: Get blogs by category
@@ -531,7 +575,6 @@ app.post("/blog/react-status", async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 });
-
 
 
 
