@@ -63,6 +63,24 @@ app.post("/blogs", async (req, res) => {
 });
 
 
+app.get("/blogs/ids", async (req, res) => {
+    try {
+        await connectDB();
+        const database = client.db("BlogDB");
+        const blogCollection = database.collection("blogs");
+
+        // Fetch only the _id field (MongoDB's native ID)
+        const blogIdsCursor = blogCollection.find({}, { projection: { _id: 1 } });
+        const blogIds = await blogIdsCursor.toArray();
+        
+        // Returns: [{ _id: ObjectId("...") }, { _id: ObjectId("...") }]
+        res.status(200).json(blogIds);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch blog _ids", details: error.message });
+    }
+});
+
+
 app.post("/blogs/fetch", async (req, res) => {
     try {
         await connectDB();
@@ -113,6 +131,41 @@ app.get("/blogs/latest", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch latest blogs" });
     }
 });
+
+app.get("/blogs/featured", async (req, res) => {
+    try {
+        await connectDB();
+        const database = client.db("BlogDB");
+        const blogCollection = database.collection("blogs");
+
+        // Define the list of featured blog post ObjectIds
+        const featuredIds = [
+            new ObjectId("67ed26a2ab0ade3d405c4da6"),
+            new ObjectId("67ed248aab0ade3d405c4da1"),
+            new ObjectId("67ed2361ab0ade3d405c4d9f"),
+            new ObjectId("67ed38a33f7fd53cf989391e")
+        ];
+
+        console.log("object");
+
+        // Fetch the featured blogs using the $in operator to match the _id field
+        const featuredBlogs = await blogCollection.find({ _id: { $in: featuredIds } }).toArray();
+
+        if (featuredBlogs.length === 0) {
+            return res.status(404).json({ message: "No featured blogs found" });
+        }
+
+        // Respond with the featured blogs
+        res.status(200).json({
+            message: "Featured blogs fetched successfully",
+            data: featuredBlogs
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Failed to fetch featured blogs", details: error.message });
+    }
+});
+
 
 // ✅ Restore: Get popular blogs
 app.get("/blogs/popular", async (req, res) => {
@@ -478,6 +531,9 @@ app.post("/blog/react-status", async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 });
+
+
+
 
 
 
