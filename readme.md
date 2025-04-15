@@ -42,7 +42,7 @@ node api/index.js
 
 
 
-# 📚 Blog Genius API Endpoints
+## 📚 Blog Genius API Endpoints
 
 ### ✅ Blog CRUD
 
@@ -100,7 +100,7 @@ node api/index.js
 
 
 
-# 🔗 Frontend Integration
+## 🔗 Frontend Integration
 
 The frontend for Blog Genius can be accessed at: [here](https://github.com/Mustafiz82/blog-genius)
 
