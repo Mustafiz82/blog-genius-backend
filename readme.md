@@ -18,8 +18,8 @@
 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-username/your-backend-repo.git
-cd your-backend-repo
+git clone https://github.com/Mustafiz82/blog-genius-backend.git
+cd blog-genius-backend
 ```
 
 2. Install dependencies
