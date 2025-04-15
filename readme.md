@@ -111,7 +111,7 @@ The frontend for Blog Genius can be accessed at: [here](https://github.com/Musta
 - **Name:** Mustafiz Rahman 
 - **GitHub:** [@Mustafiz82](https://github.com/Mustafiz82)  
 - **Email:** [mustafiz8260@gmail.com](mailto:mustafiz8260@gmail.com)  
-- **Portfolio:** [yourportfolio.com](https://mustafizrahman.vercel.app/)
+- **Portfolio:** [mustafizrahman.vercel.app](https://mustafizrahman.vercel.app/)
 
 ---
 
